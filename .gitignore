@@ -1,0 +1,28 @@
+# Ignore dataset images
+my_dataset/images/storage/train/*
+my_dataset/images/storage/val/*
+my_dataset/images/train/*
+my_dataset/images/val/*
+
+# Ignore dataset labels
+my_dataset/labels/storage/train/*
+my_dataset/labels/storage/val/*
+my_dataset/labels/train/*
+my_dataset/labels/val/*
+
+# Ignore masks
+my_dataset/masks/train/*
+my_dataset/masks/val/*
+
+# Ignore detection/segmentation runs
+runs/detect/*
+runs/segment/*
+
+# Ignore SAM model weights
+segmentation/sam_vit_h_4b8939.pth
+segmentation/segment_anything
+
+# Keep Python files in vids folder
+vids/*
+!vids/*.py
+

@@ -201,11 +201,11 @@ def main():
         into the `my_dataset` storage layout used by the rest of the pipeline.
 
     Command-line usage:
-        python setup_new_data.py ./vids/humanoid_imgs [--dry-run] [--seed 42]
+        python setup_new_data.py ./vids/humanoid_data [--dry-run] [--seed 42]
 
     Workflow:
         1. Validate the provided source folder path.
-        2. Derive object_name from folder name (removes a trailing '_imgs' if present).
+        2. Derive object_name from folder name (removes a trailing '_data' if present).
         3. Discover image/label filename maps within the source folder.
         4. Delete any images that do not have a corresponding label (orphan images).
         5. Re-discover maps and compute matched pairs (images & labels).
@@ -227,8 +227,11 @@ def main():
         - Use the --dry-run flag to preview actions before making any filesystem changes.
         - The function currently copies files to the destination (doesn't delete sources).
     """
-    parser = argparse.ArgumentParser(description="Prepare vid frames folder into my_dataset storage (rename, split, move).")
-    parser.add_argument("source_folder", help="Exact path to folder, e.g. ./vids/humanoid_imgs")
+    parser = argparse.ArgumentParser(
+        description="Prepare vid frames folder into my_dataset storage (rename, split, move)."
+    )
+    parser.add_argument("source_folder", help="Exact path to folder, e.g. ./vids/humanoid_data")
+    parser.add_argument("new_class_name", type=str, help="Name of the new class to use instead of folder name")
     parser.add_argument("--dry-run", action="store_true", help="Show actions without deleting/moving files")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for split")
     args = parser.parse_args()
@@ -238,16 +241,15 @@ def main():
         print(f"[ERROR] Folder does not exist: {src}")
         sys.exit(1)
 
-    folder_name = src.name
-    object_name = folder_name[:-5] if folder_name.endswith("_imgs") else folder_name
+    object_name = args.new_class_name  # <-- use the new class name directly
     print(f"[INFO] Source folder: {src}")
-    print(f"[INFO] Object name: {object_name}")
+    print(f"[INFO] Using new class name: {object_name}")
 
     global images_map, labels_map
     images_map, labels_map = discover_maps(src)
     print(f"[INFO] Found {len(images_map)} images and {len(labels_map)} labels in source folder.")
 
-    # Delete images that don't have a label
+    # Delete images without corresponding labels
     orphan_images = set(images_map.keys()) - set(labels_map.keys())
     if orphan_images:
         print(f"[INFO] Deleting {len(orphan_images)} images without labels...")
@@ -270,10 +272,15 @@ def main():
     # Rename all matched pairs to object_name_00000... safely
     safe_two_phase_rename(src, paired_basenames, object_name, dry_run=args.dry_run)
 
-    # After renaming, build final pairs list from files
-    all_images = sorted([p.name for p in src.iterdir() if p.is_file() and p.suffix.lower() in IMAGE_EXTS and p.name.startswith(object_name + "_")], key=natural_key)
-    all_labels = sorted([p.name for p in src.iterdir() if p.is_file() and p.suffix.lower() == LABEL_EXT and p.name.startswith(object_name + "_")], key=natural_key)
-    # pair by sorted order (they should align)
+    # Build final sorted list of images and labels
+    all_images = sorted(
+        [p.name for p in src.iterdir() if p.is_file() and p.suffix.lower() in IMAGE_EXTS and p.name.startswith(object_name + "_")],
+        key=natural_key
+    )
+    all_labels = sorted(
+        [p.name for p in src.iterdir() if p.is_file() and p.suffix.lower() == LABEL_EXT and p.name.startswith(object_name + "_")],
+        key=natural_key
+    )
     pairs = list(zip(all_images, all_labels))
     print(f"[INFO] {len(pairs)} pairs after renaming.")
 
@@ -285,7 +292,7 @@ def main():
     val_pairs = pairs[n_train:]
     print(f"[INFO] Split -> train: {len(train_pairs)}, val: {len(val_pairs)} (ratio {TRAIN_SPLIT})")
 
-    # Dest folders
+    # Destination folders
     train_img_dest = IMAGES_STORAGE / "train" / object_name
     val_img_dest = IMAGES_STORAGE / "val" / object_name
     train_lbl_dest = LABELS_STORAGE / "train" / object_name

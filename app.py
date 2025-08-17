@@ -12,8 +12,8 @@ import mss
 import json
 import albumentations as A
 import yaml
+import patoolib
 from utility.vizualize_samples import draw_labels_on_image
-
 
 st.set_page_config(layout="wide")
 
@@ -22,62 +22,74 @@ st.set_page_config(layout="wide")
 VIDS_DIR = Path("./vids")
 VIDS_DIR.mkdir(exist_ok=True)
 
-#st.set_option('server.maxUploadSize', 1024)  # 1 GB
 st.title("Detection / Segmentation Data Manager")
+
+
+
+
+
+
+
 
 # Step 1: Add Data
 st.header("1. Add Data")
 
-uploaded_video = st.file_uploader("Upload a video (only 1 at a time)", type=["mp4", "avi", "mov", "mkv"])
-interval_ms = st.number_input("Frame extraction interval (ms)", value=500, min_value=1)
+new_class_name = st.text_input("Enter the class name:")
 
+uploaded_video = st.file_uploader(
+    "Upload a video (only 1 at a time)", 
+    type=["mp4", "avi", "mov", "mkv"]
+)
+interval_ms = st.number_input("Frame extraction interval (ms)", value=1000, min_value=1)
+
+# Only process if a video was uploaded
 if uploaded_video:
-    st.info("Saving the video...")
-    video_path = VIDS_DIR / uploaded_video.name
-    with open(video_path, "wb") as f:
-        shutil.copyfileobj(uploaded_video, f)
-    st.success(f"Video saved to {video_path} (previous video overwritten if existed)")
-
-if st.button("Start Frame Extraction"):
-    # Look for any video in ./vids (just the first one found)
-    video_files = list(VIDS_DIR.glob("*.mp4")) + list(VIDS_DIR.glob("*.avi")) + list(VIDS_DIR.glob("*.mov")) + list(VIDS_DIR.glob("*.mkv"))
-
-    if len(video_files) == 0:
-        st.error("No video found in ./vids. Please upload one first.")
-    elif len(video_files) > 1:
-        st.warning("Multiple videos found in ./vids. Using the most recently modified one.")
-        video_path = max(video_files, key=lambda f: f.stat().st_mtime)
+    if not new_class_name:
+        st.error("Please enter a class name before saving the video.")
     else:
-        video_path = video_files[0]
+        # Check if the uploaded file has any data
+        uploaded_video.seek(0, 2)  # Move pointer to end of file
+        size = uploaded_video.tell()
+        uploaded_video.seek(0)  # Reset pointer to start
+        if size == 0:
+            st.error("Uploaded video is empty. Please upload a valid video file.")
+        else:
+            st.info("Saving the video...")
+            video_path = VIDS_DIR / uploaded_video.name
+            with open(video_path, "wb") as f:
+                shutil.copyfileobj(uploaded_video, f)
+            st.success(f"Video saved to {video_path} (previous video overwritten if existed)")
 
-    if interval_ms < 1:
-        st.error("Please set a valid frame extraction interval (ms).")
-    else:
-        img_dir = VIDS_DIR / f"{video_path.stem}_imgs"
-        img_dir.mkdir(exist_ok=True)
+            if st.button("Start Frame Extraction"):
+                if interval_ms < 1:
+                    st.error("Please set a valid frame extraction interval (ms).")
+                else:
+                    img_dir = VIDS_DIR / f"{new_class_name}_data" 
+                    img_dir.mkdir(exist_ok=True)
 
-        st.info(f"Extracting frames from: {video_path.name}")
-        try:
-            subprocess.run(
-                [
-                    "python",
-                    str(VIDS_DIR / "extract_frames.py"),
-                    str(video_path),
-                    str(img_dir),
-                    str(interval_ms)
-                ],
-                check=True
-            )
-            if img_dir.exists() and any(img_dir.iterdir()):
-                st.success(f"Frames saved to {img_dir}")
-                st.markdown(
-                    f"Now go to [makesense.ai](https://www.makesense.ai/), label your images, "
-                    f"and download them as a ZIP."
-                )
-            else:
-                st.error("Frame extraction completed but no output images found.")
-        except subprocess.CalledProcessError as e:
-            st.error(f"Error extracting frames: {e}")
+                    st.info(f"Extracting frames for class: {new_class_name}")
+                    try:
+                        subprocess.run(
+                            [
+                                "python",
+                                str(VIDS_DIR / "extract_frames.py"),
+                                str(video_path),
+                                str(img_dir),
+                                str(interval_ms),
+                                str(new_class_name)
+                            ],
+                            check=True
+                        )
+                        if img_dir.exists() and any(img_dir.iterdir()):
+                            st.success(f"Frames saved to {img_dir}")
+                            st.markdown(
+                                f"Now go to [makesense.ai](https://www.makesense.ai/), label your images, "
+                                f"and download them as a ZIP."
+                            )
+                        else:
+                            st.error("Frame extraction completed but no output images found.")
+                    except subprocess.CalledProcessError as e:
+                        st.error(f"Error extracting frames: {e}")
 
 
 
@@ -91,39 +103,76 @@ st.divider()
 # Step 2: Upload labeled ZIP
 st.header("2. Upload Labeled Data")
 
-labeled_zip = st.file_uploader("Upload your labeled data ZIP", type=["zip"])
+# Let user upload any common archive type (not just zip)
+labeled_archive = st.file_uploader(
+    "Upload your labeled data archive (ZIP, RAR, 7z, TAR, etc.)",
+    type=["zip", "rar", "7z", "tar", "gz"]
+)
 
-if labeled_zip:
-    # Detect target folder
-    if not uploaded_video:
-        st.error("Please upload the original video first so we know where to put labels.")
-    else:
-        img_dir = VIDS_DIR / f"{Path(uploaded_video.name).stem}_imgs"
-        if not img_dir.exists():
-            st.error("Image folder not found. Did you run frame extraction first?")
+if labeled_archive:
+    if st.button("Start Processing Labeled Data"):
+        if not new_class_name:
+            st.error("Please enter a class name first so we know where to put labels.")
         else:
-            # Extract zip
-            zip_path = VIDS_DIR / "temp_labels.zip"
-            with open(zip_path, "wb") as f:
-                f.write(labeled_zip.read())
+            img_dir = VIDS_DIR / f"{new_class_name}_data"
+            if not img_dir.exists():
+                st.error("Image folder not found. Did you run frame extraction first?")
+            else:
+                # Save uploaded archive temporarily
+                archive_path = VIDS_DIR / labeled_archive.name
+                with open(archive_path, "wb") as f:
+                    f.write(labeled_archive.read())
 
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(img_dir)
-            zip_path.unlink()
+                try:
+                    # Extract with patool
+                    patoolib.extract_archive(str(archive_path), outdir=str(img_dir))
 
-            st.success(f"Labeled data extracted into {img_dir}")
+                    # Detect if there's exactly one subfolder (common case)
+                    extracted_items = [p for p in img_dir.iterdir()]
+                    if len(extracted_items) == 1 and extracted_items[0].is_dir():
+                        top_level = extracted_items[0]
+                        # Move all contents of that subfolder up into img_dir
+                        for root, _, files in os.walk(top_level):
+                            for file in files:
+                                src = Path(root) / file
+                                dst = img_dir / file
+                                if src != dst:
+                                    if dst.exists():
+                                        dst.unlink()
+                                    src.replace(dst)
+                        # Remove the now-empty subfolder
+                        shutil.rmtree(top_level)
+                    else:
+                        # alt case: archive had multiple files/folders at root
+                        for root, _, files in os.walk(img_dir):
+                            for file in files:
+                                src = Path(root) / file
+                                dst = img_dir / file
+                                if src != dst:
+                                    if dst.exists():
+                                        dst.unlink()
+                                    src.replace(dst)
+                        # Clean up any leftover subfolders
+                        for subdir in img_dir.iterdir():
+                            if subdir.is_dir():
+                                shutil.rmtree(subdir)
 
-            # Run setup_new_data.py
-            st.info("Setting up labeled data...")
-            try:
-                subprocess.run(
-                    ["python", str(VIDS_DIR / "setup_new_data.py"), str(img_dir)],
-                    check=True
-                )
-                st.success("New data setup complete!")
-            except subprocess.CalledProcessError as e:
-                st.error(f"Error setting up new data: {e}")
+                    st.success(f"Labeled data extracted into {img_dir}")
+                except Exception as e:
+                    st.error(f"Error extracting archive: {e}")
+                finally:
+                    archive_path.unlink(missing_ok=True)
 
+                # Run setup_new_data.py
+                st.info("Setting up labeled data...")
+                try:
+                    subprocess.run(
+                        ["python", str(VIDS_DIR / "setup_new_data.py"), str(img_dir), str(new_class_name)],
+                        check=True
+                    )
+                    st.success("New data setup complete!")
+                except subprocess.CalledProcessError as e:
+                    st.error(f"Error setting up new data: {e}")
 
 
 
@@ -242,6 +291,8 @@ if steps["augment"]:
 if st.button("Run Setup Pipeline"):
     if len(selected_classes) == 0:
         st.error("Must select at least one class.")
+    elif len(available_classes) == 0:
+        st.warning("There are currently no classes in the storage.")
     elif not aug_is_valid and steps["augment"]:
         st.error("Augmentation code is invalid. Please fix before running.")
     else:
@@ -435,7 +486,7 @@ if os.path.exists(model_dir):
 
 if not available_models:
     st.error(f"No models found in {model_dir}")
-    st.stop()
+    #st.stop()
 
 model_path = st.selectbox("Select model:", available_models)
 
@@ -461,36 +512,82 @@ left = st.number_input("Left", value=800)
 width = st.number_input("Width", value=960)
 height = st.number_input("Height", value=540)
 
-start_button = st.button("Start Real-Time Inference")
+# --- State management ---
+if "run_inference" not in st.session_state:
+    st.session_state.run_inference = False
+if "model_loaded" not in st.session_state:
+    st.session_state.model_loaded = False
 
-if start_button:
-    st.info(f"Loading model from {model_path} ...")
-    model = YOLO(model_path)
+# Start/Stop buttons
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("▶ Start Real-Time Inference"):
+        if model_path == None:
+            st.error("Please select a valid model.")
+        else:
+            if not st.session_state.model_loaded:
+                st.info(f"Loading model from {model_path} ...")
+                st.session_state.model = YOLO(model_path)
+                st.session_state.model_loaded = True
+            st.session_state.run_inference = True
+with col2:
+    if st.button("⏹ Stop"):
+        st.session_state.run_inference = False
 
+# --- Run inference (one frame per Streamlit cycle) ---
+if st.session_state.run_inference and st.session_state.model_loaded:
     sct = mss.mss()
     screen_region = {'top': top, 'left': left, 'width': width, 'height': height}
-
     frame_display = st.empty()
-    stop_button = st.button("Stop")
 
-    while True:
-        start_time = time.time()
-        
-        # Capture screen
+    while st.session_state.run_inference:
         screen = np.array(sct.grab(screen_region))
         frame_rgb = cv2.cvtColor(screen, cv2.COLOR_BGRA2RGB)
 
-        results = model(frame_rgb[..., ::-1], imgsz=inference_imgsz, conf=pred_conf)
+        results = st.session_state.model(frame_rgb[..., ::-1], imgsz=inference_imgsz, conf=pred_conf)
 
-        # YOLO's .plot() returns BGR, so convert to RGB
         img_with_boxes_bgr = results[0].plot()
         img_with_boxes_rgb = cv2.cvtColor(img_with_boxes_bgr, cv2.COLOR_BGR2RGB)
 
         frame_display.image(img_with_boxes_rgb, channels="RGB", use_column_width=True)
 
-        fps = 1 / (time.time() - start_time)
+        # prevent Streamlit from freezing, adjust fps here
+        time.sleep(0.001)
 
-        if stop_button:
-            st.success("Stopped.")
-            break
 
+
+
+st.divider()
+
+
+st.header("⚠️ Delete a Class")
+
+del_selected_classes = st.multiselect(
+    "Select classes you want to delete:",
+    options=available_classes,
+)
+
+if st.button("Delete Class"):
+    if not del_selected_classes:
+        st.error("Please enter a class name.")
+    else:
+        base_dirs = [
+            Path("my_dataset/images/storage/train"),
+            Path("my_dataset/images/storage/val"),
+            Path("my_dataset/labels/storage/train"),
+            Path("my_dataset/labels/storage/val"),
+        ]
+
+        for delete_class_name in del_selected_classes:
+            deleted_any = False
+            for base in base_dirs:
+                class_dir = base / delete_class_name
+                if class_dir.exists() and class_dir.is_dir():
+                    shutil.rmtree(class_dir)
+                    st.write(f"Deleted: {class_dir}")
+                    deleted_any = True
+
+            if deleted_any:
+                st.success(f"Class '{delete_class_name}' deleted from dataset.")
+            else:
+                st.warning(f"No folders found for class '{delete_class_name}'.")

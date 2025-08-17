@@ -8,7 +8,7 @@ import time
 import numpy as np
 import io
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from segmentation.segment_boxes import segment_boxes
 from augmentation.segment_augmentation import segment_aug
 from augmentation.box_augmentation import box_aug

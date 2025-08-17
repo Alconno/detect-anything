@@ -35,9 +35,9 @@ This will:
 import cv2
 import os
 import argparse
+from pathlib import Path
 
-
-def extract_frames(video_path, output_dir, interval_ms):
+def extract_frames(video_path, output_dir, interval_ms, class_name):
     os.makedirs(output_dir, exist_ok=True)
 
     cap = cv2.VideoCapture(video_path)
@@ -48,6 +48,7 @@ def extract_frames(video_path, output_dir, interval_ms):
     fps = cap.get(cv2.CAP_PROP_FPS)
     frame_interval = int((interval_ms / 1000) * fps)
 
+    #video_stem = Path(video_path).stem  # "fires_clip" from "fires_clip.mp4"
     frame_count = 0
     saved_count = 0
 
@@ -57,7 +58,8 @@ def extract_frames(video_path, output_dir, interval_ms):
             break
 
         if frame_count % frame_interval == 0:
-            filename = os.path.join(output_dir, f"frame_{saved_count:05d}.png")
+            # New naming scheme: <video_name>_00000.png
+            filename = os.path.join(output_dir, f"{class_name}_{saved_count:05d}.png")
             cv2.imwrite(filename, frame)
             saved_count += 1
 
@@ -71,6 +73,7 @@ if __name__ == "__main__":
     parser.add_argument("video_path", help="Path to input video")
     parser.add_argument("output_dir", help="Directory to save extracted frames")
     parser.add_argument("interval_ms", type=int, help="Interval in milliseconds between frames")
+    parser.add_argument("new_class_name", type=str, help="Name of the new class")
 
     args = parser.parse_args()
-    extract_frames(args.video_path, args.output_dir, args.interval_ms)
+    extract_frames(args.video_path, args.output_dir, args.interval_ms, args.new_class_name)

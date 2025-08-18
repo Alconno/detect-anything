@@ -26,3 +26,10 @@ segmentation/segment_anything
 vids/*
 !vids/*.py
 
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class

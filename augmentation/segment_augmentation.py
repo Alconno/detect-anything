@@ -186,6 +186,7 @@ def segment_aug(strategy_map, aug_transform, num_augs=5):
             label_lines_written = 0
             with open(label_path, "w") as f:
                 for id_pair in np.unique(aug_mask):
+                    
                     cls_id, inst_id = reverse_pairing_function(id_pair)
                     if inst_id == 0:  # bg
                         continue
@@ -229,9 +230,30 @@ from multiprocessing import freeze_support
 def main():
     freeze_support()
 
+    # Define the augmentation pipeline
+    aug_transform = A.Compose([
+        A.HorizontalFlip(p=0.5),
+        A.ShiftScaleRotate(
+            shift_limit=0.05,
+            scale_limit=0.15,
+            rotate_limit=30,
+            border_mode=cv2.BORDER_CONSTANT,
+            interpolation=cv2.INTER_NEAREST,
+            p=0.6
+        ),
+        A.Perspective(scale=(0.05, 0.1), p=0.3),
+        A.RandomBrightnessContrast(
+            brightness_limit=0.2, 
+            contrast_limit=0.1,
+            p=0.3
+        )
+    ])
 
+    # Strategy map: apply per-instance augmentation for all classes
     full_strategy_map = {cls: 1 for cls in class_names}
-    segment_aug(full_strategy_map)
+
+    # Run augmentation
+    segment_aug(full_strategy_map, aug_transform, num_augs=5)
 
 if __name__ == '__main__':
     main()

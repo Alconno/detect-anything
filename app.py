@@ -27,10 +27,6 @@ st.title("Detection / Segmentation Data Manager")
 
 
 
-
-
-
-
 # Step 1: Add Data
 st.header("1. Add Data")
 
@@ -341,6 +337,7 @@ if st.button("Run Setup Pipeline"):
             if len(log_lines) > MAX_LINES:
                 log_lines = log_lines[-MAX_LINES:]
             log_area.text_area("Pipeline Output (latest logs)", "\n".join(log_lines), height=400)
+        log_area = st.empty()
 
         process.stdout.close()
         retcode = process.wait()
@@ -400,7 +397,7 @@ else:
 
     st.write(f"**{idx+1}/{num_images}: {img_file}**")
     img = draw_labels_on_image(image_path, label_path, class_names)
-    st.image(img, use_column_width=True)
+    st.image(img, use_container_width=True)
 
 
 
@@ -455,6 +452,7 @@ if st.button("Start Training"):
         if len(log_lines) > MAX_LINES:
             log_lines = log_lines[-MAX_LINES:]
         log_area.text_area("Training Output (latest logs)", "\n".join(log_lines), height=400)
+    log_area = st.empty()
 
     process.stdout.close()
     retcode = process.wait()
@@ -549,7 +547,7 @@ if st.session_state.run_inference and st.session_state.model_loaded:
         img_with_boxes_bgr = results[0].plot()
         img_with_boxes_rgb = cv2.cvtColor(img_with_boxes_bgr, cv2.COLOR_BGR2RGB)
 
-        frame_display.image(img_with_boxes_rgb, channels="RGB", use_column_width=True)
+        frame_display.image(img_with_boxes_rgb, channels="RGB", use_container_width=True)
 
         # prevent Streamlit from freezing, adjust fps here
         time.sleep(0.001)

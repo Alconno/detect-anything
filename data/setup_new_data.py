@@ -207,7 +207,7 @@ def main():
         into the `my_dataset` storage layout used by the rest of the pipeline.
 
     Command-line usage:
-        python setup_new_data.py ./vids/humanoid_data [--dry-run] [--seed 42]
+        python setup_new_data.py ./data/humanoid_data [--dry-run] [--seed 42]
 
     Workflow:
         1. Validate the provided source folder path.
@@ -236,7 +236,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Prepare vid frames folder into my_dataset storage (rename, split, move)."
     )
-    parser.add_argument("source_folder", help="Exact path to folder, e.g. ./vids/humanoid_data")
+    parser.add_argument("source_folder", help="Exact path to folder, e.g. ./data/humanoid_data")
     parser.add_argument("new_class_name", type=str, help="Name of the new class to use instead of folder name")
     parser.add_argument("--dry-run", action="store_true", help="Show actions without deleting/moving files")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for split")
@@ -259,16 +259,16 @@ def main():
     images_map, labels_map = discover_maps(src)
     print(f"[INFO] Found {len(images_map)} images and {len(labels_map)} labels in source folder.")
 
-    # Delete images without corresponding labels
-    orphan_images = set(images_map.keys()) - set(labels_map.keys())
-    if orphan_images:
-        print(f"[INFO] Deleting {len(orphan_images)} images without labels...")
-    for stem in sorted(orphan_images, key=natural_key):
-        img_name = images_map[stem]
-        print(f"[DELETE] {img_name}")
+    # Delete labels without corresponding images (keep images always!)
+    orphan_labels = set(labels_map.keys()) - set(images_map.keys())
+    if orphan_labels:
+        print(f"[INFO] Deleting {len(orphan_labels)} labels without images...")
+    for stem in sorted(orphan_labels, key=natural_key):
+        lbl_name = labels_map[stem]
+        print(f"[DELETE] {lbl_name}")
         if not args.dry_run:
-            (src / img_name).unlink()
-        del images_map[stem]
+            (src / lbl_name).unlink()
+        del labels_map[stem]
 
     # Update maps after deletion
     images_map, labels_map = discover_maps(src)
@@ -282,17 +282,13 @@ def main():
     # Rename all matched pairs to object_name_00000... safely
     safe_two_phase_rename(src, paired_basenames, object_name, dry_run=args.dry_run)
 
-    # Build final sorted list of images and labels
-    all_images = sorted(
-        [p.name for p in src.iterdir() if p.is_file() and p.suffix.lower() in IMAGE_EXTS and p.name.startswith(object_name + "_")],
-        key=natural_key
-    )
-    all_labels = sorted(
-        [p.name for p in src.iterdir() if p.is_file() and p.suffix.lower() == LABEL_EXT and p.name.startswith(object_name + "_")],
-        key=natural_key
-    )
-    pairs = list(zip(all_images, all_labels))
+    # Re-discover maps after renaming (ensures 1-to-1 mapping by stem)
+    images_map, labels_map = discover_maps(src)
+    paired_basenames = sorted(set(images_map.keys()) & set(labels_map.keys()), key=natural_key)
+
+    pairs = [(images_map[stem], labels_map[stem]) for stem in paired_basenames]
     print(f"[INFO] {len(pairs)} pairs after renaming.")
+
 
     # Shuffle & split
     random.seed(args.seed)

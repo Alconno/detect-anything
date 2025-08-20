@@ -19,8 +19,8 @@ st.set_page_config(layout="wide")
 
 
 # Paths
-VIDS_DIR = Path("./vids")
-VIDS_DIR.mkdir(exist_ok=True)
+DATA_DIR = Path("./data")
+DATA_DIR.mkdir(exist_ok=True)
 
 st.title("Detection / Segmentation Data Manager")
 
@@ -67,7 +67,7 @@ if uploaded_video:
             st.error("Uploaded video is empty. Please upload a valid video file.")
         else:
             st.info("Saving the video...")
-            video_path = VIDS_DIR / uploaded_video.name
+            video_path = DATA_DIR / uploaded_video.name
             with open(video_path, "wb") as f:
                 shutil.copyfileobj(uploaded_video, f)
             st.success(f"Video saved to {video_path} (previous video overwritten if existed)")
@@ -76,7 +76,7 @@ if uploaded_video:
                 if interval_ms < 1:
                     st.error("Please set a valid frame extraction interval (ms).")
                 else:
-                    img_dir = VIDS_DIR / f"{new_class_name}_data"
+                    img_dir = DATA_DIR / f"{new_class_name}_data"
                     img_dir.mkdir(exist_ok=True)
 
                     st.info(f"Extracting frames for class: {new_class_name}")
@@ -84,7 +84,7 @@ if uploaded_video:
                         subprocess.run(
                             [
                                 "python",
-                                str(VIDS_DIR / "extract_frames.py"),
+                                str(DATA_DIR / "extract_frames.py"),
                                 str(video_path),
                                 str(img_dir),
                                 str(interval_ms),
@@ -112,7 +112,7 @@ elif uploaded_archive:
     else:
         if st.button("Process Archive"):
             st.info("Processing archive...")
-            tmp_dir = VIDS_DIR / f"{new_class_name}_tmp"
+            tmp_dir = DATA_DIR / f"{new_class_name}_tmp"
             tmp_dir.mkdir(exist_ok=True)
 
             archive_path = tmp_dir / uploaded_archive.name
@@ -126,7 +126,7 @@ elif uploaded_archive:
                 if not images:
                     st.error("No images found in the archive.")
                 else:
-                    dest_dir = VIDS_DIR / f"{new_class_name}_data"
+                    dest_dir = DATA_DIR / f"{new_class_name}_data"
                     dest_dir.mkdir(exist_ok=True)
 
                     for idx, img_path in enumerate(images):
@@ -184,8 +184,12 @@ if labeled_archive:
         if not new_class_name:
             st.error("Please enter a class name first.")
         else:
-            img_dir = VIDS_DIR / f"{new_class_name}_data"
+            img_dir = DATA_DIR / f"{new_class_name}_data"
             img_dir.mkdir(exist_ok=True)
+
+            # Delete old labels before extraction
+            for old_lbl in img_dir.glob("*.txt"):
+                old_lbl.unlink()
 
             # Use a temporary directory for the uploaded archive
             with tempfile.TemporaryDirectory() as tmp:
@@ -242,7 +246,7 @@ if labeled_archive:
                     subprocess.run(
                         [
                             "python",
-                            str(VIDS_DIR / "setup_new_data.py"),
+                            str(DATA_DIR / "setup_new_data.py"),
                             str(img_dir),
                             str(new_class_name),
                             "--train-split", str(train_split)
@@ -662,16 +666,22 @@ if st.button("Delete Class"):
         st.error("Please enter a class name.")
     else:
         base_dirs = [
-            Path("my_dataset/images/storage/train"),
-            Path("my_dataset/images/storage/val"),
-            Path("my_dataset/labels/storage/train"),
-            Path("my_dataset/labels/storage/val"),
+            [Path("my_dataset/images/storage/train"),None],
+            [Path("my_dataset/images/storage/val"),None],
+            [Path("my_dataset/labels/storage/train"),None],
+            [Path("my_dataset/labels/storage/val"),None],
+
+            [Path("data"), "_data"]
         ]
 
         for delete_class_name in del_selected_classes:
             deleted_any = False
-            for base in base_dirs:
-                class_dir = base / delete_class_name
+            for base, suffix in base_dirs:
+                if suffix is None:
+                    class_dir = base / delete_class_name
+                else:
+                    class_dir = base / f"{delete_class_name}{suffix}"
+                
                 if class_dir.exists() and class_dir.is_dir():
                     shutil.rmtree(class_dir)
                     st.write(f"Deleted: {class_dir}")

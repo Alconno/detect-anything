@@ -27,7 +27,7 @@ You provide:
 📦 EXAMPLE USAGE:
 
     python rename_file_base.py \\
-        --dir ./vids/rhino_imgs \\
+        --dir ./data/rhino_imgs \\
         --old_prefix frame \\
         --new_prefix rhino \\
         --limit 18

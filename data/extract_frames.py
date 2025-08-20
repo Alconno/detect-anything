@@ -19,12 +19,12 @@ You have a video file (e.g., `fires.mp4`) and you want to extract still frames e
 
 📦 EXAMPLE USAGE:
 
-    python extract_frames.py ./vids/fires_clip.mp4 ./vids/output_imgs 1000
+    python extract_frames.py ./data/fires_clip.mp4 ./data/output_imgs 1000
 
 This will:
 - Load `fires_clip.mp4`
 - Save one frame every 1000 milliseconds
-- Output frames as PNG files to `./vids/output_imgs/`
+- Output frames as PNG files to `./data/output_imgs/`
 
 📌 NOTES:
 - Output directory will be created automatically if it doesn’t exist.

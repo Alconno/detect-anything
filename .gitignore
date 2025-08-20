@@ -24,9 +24,9 @@ runs/segment/*
 segmentation/sam_vit_h_4b8939.pth
 segmentation/segment_anything
 
-# Keep Python files in vids folder
-vids/*
-!vids/*.py
+# Keep Python files in data folder
+data/*
+!data/*.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

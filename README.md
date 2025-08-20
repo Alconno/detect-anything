@@ -5,7 +5,7 @@
 ---
 
 ## Table of Contents
-- [What this is](#what-this-is)
+- [What is this](#what-is-this)
 - [Key features](#key-features)
 - [Quick start](#quick-start)
 - [Step‑by‑step tutorial (new users)](#step-by-step-tutorial-new-users)
@@ -20,9 +20,11 @@
 - [Tips & pitfalls](#tips--pitfalls)
 - [FAQ](#faq)
 
+
 ---
 
-## What this is
+
+## What is this
 **Detect Anything** is a hands‑on pipeline to go from *idea → trained model* with minimal friction:
 - Use a **Streamlit** app to guide you through data collection, labeling, dataset assembly, training, and evaluation.
 - Works for **object detection** *and* **instance segmentation** (YOLO‑style).
@@ -45,27 +47,11 @@
 - **Training UX**: pick image size and epochs; the app writes the dataset config and launches training.
 - **Evaluation**: visualize predictions in real‑time on your PC.
 
----
-
-## Quick start
-> **If you know your way around Conda/Python, this is the TL;DR.**
-
-```bash
-# 1) Create env (Conda) and install deps
-conda create -n detect-anything python=3.10 -y
-conda activate detect-anything
-pip install -r requirements.txt
-
-# 2) Run the project setup
-python setup.py
-
-# 3) Run the streamlit app
-streamlit run app.py
-```
-
 **GPU recommended.** Training and real‑time inference are fastest on NVIDIA GPUs with recent CUDA drivers.
 
+
 ---
+
 
 ## Step‑by‑step tutorial (new users)
 This is the complete, beginner‑friendly path. Follow the steps in order.
@@ -92,7 +78,9 @@ This is the complete, beginner‑friendly path. Follow the steps in order.
 
 > **Heads‑up on archives:** If you plan to upload **.rar** files, install an unpacker on your system (e.g., WinRAR/7‑Zip on Windows). ZIP works out of the box.
 
+
 ---
+
 
 ### 1) Add a class & collect raw images
 You don’t pick your final training classes yet — you just **register a class** in the app’s class storage so images can be organized consistently. Later you can train on one or more of these classes.
@@ -100,26 +88,29 @@ You don’t pick your final training classes yet — you just **register a class
 **A. Define the class name**  
 - In the app, go to the data setup section ("Add class" / "Create class"), enter a **class name** (e.g., `rhino`, `white monster`).
 
-<img src="readme_pics/1A.png" width="400" style="border: 2px solid gray; border-radius: 4px;" />
-
-
 **B. Provide images for that class**  
 Pick **one** of the two:
 - **From a video**: upload a video containing your object(s). Use the **Frame Extraction** tool to sample frames. The app saves extracted images under the class you just created.
 - **From an archive**: upload a **ZIP/RAR** of a folder with many images of that class.
 
-![Provide video or images](readme_pics/1B.png)
-
+<p align="center">
+  <img src="readme_pics/1B.png" alt="Provide video or images"
+       style="border: 2px solid green; border-radius: 6px;" />
+</p>
 
 **C. Download (must do because of new image names)**  
 After extraction/upload, the app offers a **Download** with standardized filenames. This renaming is important because labels will later use **exactly the same basenames**.
 
-![Download the images](readme_pics/1C.png)
-
+<p align="center">
+  <img src="readme_pics/1C.png" alt="Download the images"
+       style="border: 2px solid green; border-radius: 6px;" />
+</p>
 
 > If you already uploaded a folder of images and you’re keeping them locally, you can skip the download — but ensure filenames match what the app expects if you label outside.
 
+
 ---
+
 
 ### 2) Label the images and import labels
 Now you annotate those images at https://www.makesense.ai/ and bring labels back.
@@ -138,17 +129,25 @@ Now you annotate those images at https://www.makesense.ai/ and bring labels back
   - Validate that **image basenames == label basenames**.
   - Place files into the project’s **storage** with the correct layout.
 
-![Labeling and importing the images](readme_pics/2C.png)
+<p align="center">
+  <img src="readme_pics/2C.png" alt="Labeling and importing the images"
+       style="border: 2px solid green; border-radius: 6px;" />
+</p>
 
 
 > From now on, your **images** and **labels** are synchronized and ready for training.
 
+
 ---
+
 
 ### 3) Prepare the training set
 This step builds a clean YOLO dataset from the class storage.
 
-![Preparing the training set](readme_pics/3ALL.png)
+<p align="center">
+  <img src="readme_pics/3ALL.png" alt="Preparing the training set"
+       style="border: 2px solid green; border-radius: 6px;" />
+</p>
 
 
 **A. Reset previous working set (optional)**  
@@ -161,30 +160,28 @@ This step builds a clean YOLO dataset from the class storage.
 **C. Select classes to include**  
 - Pick one or more previously added classes from storage.
 
-![Select classes to include](readme_pics/3C.png)
-
+<p align="center">
+  <img src="readme_pics/3C.png" alt="Select classes to include"
+       style="border: 2px solid green; border-radius: 6px;" />
+</p>
 
 **D. Configure augmentations**  
 - Set **how many augmented samples per original** you want.  
 - You can also edit the augmentation code/config (see [Augmentations](#augmentations)).
 
-![Configure augmentations](readme_pics/3D.png)
-
-
 **E. Generate & preview**  
 - The app writes/updates your dataset config (e.g., `data.yaml`) with selected classes.  
 - **Preview** the final samples in the UI: images with boxes, masks/polygons, tiling results — so you know exactly what will be used for training.
 
-![Preview samples](readme_pics/3E.png)
-
+<p align="center">
+  <img src="readme_pics/3E.png" alt="Preview samples"
+       style="border: 2px solid green; border-radius: 6px;" />
+</p>
 
 ---
 
 ### 4) Train (fine‑tune) the model
 With the dataset ready, kick off training.
-
-![Fine-tune the model](readme_pics/4ALL.png)
-
 
 **A. Choose model type**  
 - The app automatically launches **detection** *or* **segmentation** training based on what you chose in Step 3.
@@ -206,8 +203,6 @@ Once training finishes:
 - Use the **Real‑Time Detection / Segmentation** page in the app to run the model on live video or recorded footage.  
 - This currently runs **on your PC** (GPU‑accelerated if available). If you capture video on a phone, copy/stream it to the PC; the app will process it there.
 
-
-![Real-time inference](readme_pics/5ALL.png)
 
 ---
 

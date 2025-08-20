@@ -17,7 +17,7 @@ def main():
         if os.path.exists(tmp_dir) and os.listdir(tmp_dir):
             print(f" Restoring from existing temp folder: {tmp_dir}")
             restore_labels()
-            break  # Only need to restore once, then prepare again
+            break
 
     prepare_labels()
 

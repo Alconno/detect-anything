@@ -136,8 +136,14 @@ def safe_two_phase_rename(folder: Path, pairs_ordered, object_name, dry_run=Fals
         print(f"[RENAME-FINAL] {tmp_img} -> {final_img}")
         print(f"[RENAME-FINAL] {tmp_lbl} -> {final_lbl}")
         if not dry_run:
-            tmp_img_path.rename(folder / final_img)
+            if (folder / final_lbl).exists():
+                (folder / final_lbl).unlink()
             tmp_lbl_path.rename(folder / final_lbl)
+
+            if (folder / final_img).exists():
+                (folder / final_img).unlink()
+            tmp_img_path.rename(folder / final_img)
+                        
 
 
 def move_and_reindex(src_folder: Path, pairs, dest_img_folder: Path, dest_lbl_folder: Path, object_name, dry_run=False):
@@ -234,7 +240,11 @@ def main():
     parser.add_argument("new_class_name", type=str, help="Name of the new class to use instead of folder name")
     parser.add_argument("--dry-run", action="store_true", help="Show actions without deleting/moving files")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for split")
+    parser.add_argument("--train-split", type=float, default=0.8, help="Fraction of data to use for training (0.0-1.0)")
     args = parser.parse_args()
+
+    TRAIN_SPLIT = args.train_split
+    print("train split: ", TRAIN_SPLIT)
 
     src = Path(args.source_folder).resolve()
     if not src.exists() or not src.is_dir():
@@ -287,7 +297,8 @@ def main():
     # Shuffle & split
     random.seed(args.seed)
     random.shuffle(pairs)
-    n_train = int(len(pairs) * TRAIN_SPLIT)
+    n_train = max(1, int(len(pairs) * TRAIN_SPLIT))
+    n_train = min(n_train, len(pairs)-1)
     train_pairs = pairs[:n_train]
     val_pairs = pairs[n_train:]
     print(f"[INFO] Split -> train: {len(train_pairs)}, val: {len(val_pairs)} (ratio {TRAIN_SPLIT})")

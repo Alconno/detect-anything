@@ -26,7 +26,7 @@ st.title("Detection / Segmentation Data Manager")
 
 
 
-
+import tempfile
 # Step 1: Add Data
 st.header("1. Add Data")
 
@@ -36,17 +36,33 @@ uploaded_video = st.file_uploader(
     "Upload a video (only 1 at a time)", 
     type=["mp4", "avi", "mov", "mkv"]
 )
+uploaded_archive = st.file_uploader(
+    "Or upload an image archive (ZIP, RAR, 7z, TAR)", 
+    type=["zip", "rar", "7z", "tar"]
+)
 interval_ms = st.number_input("Frame extraction interval (ms)", value=1000, min_value=1)
 
-# Only process if a video was uploaded
+def provide_download(dir_path: Path):
+    """Create a ZIP of the given directory and provide a download button"""
+    with tempfile.TemporaryDirectory() as tmp_zip_dir:
+        zip_path = Path(tmp_zip_dir) / f"{dir_path.name}.zip"
+        shutil.make_archive(str(zip_path).replace(".zip", ""), 'zip', root_dir=dir_path)
+        with open(zip_path, "rb") as f:
+            st.download_button(
+                label="Download Processed Images",
+                data=f,
+                file_name=f"{dir_path.name}.zip",
+                mime="application/zip"
+            )
+
+# === Video Processing ===
 if uploaded_video:
     if not new_class_name:
         st.error("Please enter a class name before saving the video.")
     else:
-        # Check if the uploaded file has any data
-        uploaded_video.seek(0, 2)  # Move pointer to end of file
+        uploaded_video.seek(0, 2)
         size = uploaded_video.tell()
-        uploaded_video.seek(0)  # Reset pointer to start
+        uploaded_video.seek(0)
         if size == 0:
             st.error("Uploaded video is empty. Please upload a valid video file.")
         else:
@@ -60,7 +76,7 @@ if uploaded_video:
                 if interval_ms < 1:
                     st.error("Please set a valid frame extraction interval (ms).")
                 else:
-                    img_dir = VIDS_DIR / f"{new_class_name}_data" 
+                    img_dir = VIDS_DIR / f"{new_class_name}_data"
                     img_dir.mkdir(exist_ok=True)
 
                     st.info(f"Extracting frames for class: {new_class_name}")
@@ -82,11 +98,60 @@ if uploaded_video:
                                 f"Now go to [makesense.ai](https://www.makesense.ai/), label your images, "
                                 f"and download them as a ZIP."
                             )
+                            # Provide download button
+                            provide_download(img_dir)
                         else:
                             st.error("Frame extraction completed but no output images found.")
                     except subprocess.CalledProcessError as e:
                         st.error(f"Error extracting frames: {e}")
 
+# === Archive Processing ===
+elif uploaded_archive:
+    if not new_class_name:
+        st.error("Please enter a class name before saving the images.")
+    else:
+        if st.button("Process Archive"):
+            st.info("Processing archive...")
+            tmp_dir = VIDS_DIR / f"{new_class_name}_tmp"
+            tmp_dir.mkdir(exist_ok=True)
+
+            archive_path = tmp_dir / uploaded_archive.name
+            with open(archive_path, "wb") as f:
+                shutil.copyfileobj(uploaded_archive, f)
+
+            try:
+                patoolib.extract_archive(str(archive_path), outdir=str(tmp_dir))
+
+                images = sorted([p for p in tmp_dir.glob("**/*") if p.suffix.lower() in [".jpg", ".jpeg", ".png"]])
+                if not images:
+                    st.error("No images found in the archive.")
+                else:
+                    dest_dir = VIDS_DIR / f"{new_class_name}_data"
+                    dest_dir.mkdir(exist_ok=True)
+
+                    for idx, img_path in enumerate(images):
+                        new_name = f"{new_class_name}_{idx:05d}{img_path.suffix.lower()}"
+                        dest_path = dest_dir / new_name
+                        shutil.move(str(img_path), dest_path)
+
+                    if dest_dir.exists() and any(dest_dir.iterdir()):
+                        st.success(f"{len(images)} images saved to {dest_dir}")
+                        st.markdown(
+                            f"Now go to [makesense.ai](https://www.makesense.ai/), label your images, "
+                            f"and download them as a ZIP."
+                        )
+                        # Provide download button
+                        provide_download(dest_dir)
+                    else:
+                        st.error("Image processing completed but no output images found.")
+
+            except Exception as e:
+                st.error(f"Error extracting archive: {e}")
+            finally:
+                if archive_path.exists():
+                    archive_path.unlink()
+                if tmp_dir.exists():
+                    shutil.rmtree(tmp_dir)
 
 
 
@@ -99,7 +164,16 @@ st.divider()
 # Step 2: Upload labeled ZIP
 st.header("2. Upload Labeled Data")
 
-# Let user upload any common archive type (not just zip)
+train_split = st.slider(
+    "Select training split fraction",
+    min_value=0.0,
+    max_value=1.0,
+    value=0.8,
+    step=0.01,
+    help="Fraction of data to use for training (rest will be validation)"
+)
+
+# Let user upload any common archive type
 labeled_archive = st.file_uploader(
     "Upload your labeled data archive (ZIP, RAR, 7z, TAR, etc.)",
     type=["zip", "rar", "7z", "tar", "gz"]
@@ -108,62 +182,71 @@ labeled_archive = st.file_uploader(
 if labeled_archive:
     if st.button("Start Processing Labeled Data"):
         if not new_class_name:
-            st.error("Please enter a class name first so we know where to put labels.")
+            st.error("Please enter a class name first.")
         else:
             img_dir = VIDS_DIR / f"{new_class_name}_data"
-            if not img_dir.exists():
-                st.error("Image folder not found. Did you run frame extraction first?")
-            else:
-                # Save uploaded archive temporarily
-                archive_path = VIDS_DIR / labeled_archive.name
+            img_dir.mkdir(exist_ok=True)
+
+            # Use a temporary directory for the uploaded archive
+            with tempfile.TemporaryDirectory() as tmp:
+                archive_path = Path(tmp) / labeled_archive.name
+                # Save uploaded archive safely
+                archive_bytes = labeled_archive.read()
                 with open(archive_path, "wb") as f:
-                    f.write(labeled_archive.read())
+                    f.write(archive_bytes)
 
                 try:
-                    # Extract with patool
+                    # Extract with patoolib
                     patoolib.extract_archive(str(archive_path), outdir=str(img_dir))
 
-                    # Detect if there's exactly one subfolder (common case)
-                    extracted_items = [p for p in img_dir.iterdir()]
-                    if len(extracted_items) == 1 and extracted_items[0].is_dir():
-                        top_level = extracted_items[0]
-                        # Move all contents of that subfolder up into img_dir
-                        for root, _, files in os.walk(top_level):
-                            for file in files:
-                                src = Path(root) / file
-                                dst = img_dir / file
-                                if src != dst:
-                                    if dst.exists():
-                                        dst.unlink()
-                                    src.replace(dst)
-                        # Remove the now-empty subfolder
-                        shutil.rmtree(top_level)
-                    else:
-                        # alt case: archive had multiple files/folders at root
-                        for root, _, files in os.walk(img_dir):
-                            for file in files:
-                                src = Path(root) / file
-                                dst = img_dir / file
-                                if src != dst:
-                                    if dst.exists():
-                                        dst.unlink()
-                                    src.replace(dst)
-                        # Clean up any leftover subfolders
-                        for subdir in img_dir.iterdir():
-                            if subdir.is_dir():
-                                shutil.rmtree(subdir)
+                    # Flatten subfolders and remove duplicates
+                    for root, _, files in os.walk(img_dir):
+                        for file in files:
+                            src = Path(root) / file
+                            dst = img_dir / file
+                            if src != dst:
+                                if dst.exists():
+                                    dst.unlink()
+                                src.replace(dst)
+                    for subdir in img_dir.iterdir():
+                        if subdir.is_dir():
+                            shutil.rmtree(subdir)
 
                     st.success(f"Labeled data extracted into {img_dir}")
-                except Exception as e:
-                    st.error(f"Error extracting archive: {e}")
-                finally:
-                    archive_path.unlink(missing_ok=True)
 
-                # Run setup_new_data.py
+                    # Rename files
+                    st.info("Renaming images...")
+                    # Count actual number of image files in img_dir
+                    image_files = sorted([p for p in img_dir.iterdir() if p.is_file() and p.suffix.lower() in [".jpg", ".jpeg", ".png"]])
+                    max_files = len(image_files)
+
+                    subprocess.run(
+                        [
+                            "python",
+                            str(Path("./utility/rename_file_base.py").resolve()),
+                            "--dir", str(img_dir),
+                            "--old_prefix", "frame",
+                            "--new_prefix", new_class_name,
+                            "--limit", str(max_files)
+                        ],
+                        check=True
+                    )
+                    st.success(f"{max_files} images renamed successfully!")
+
+                except Exception as e:
+                    st.error(f"Error extracting or renaming archive: {e}")
+
+                # Run dataset setup
                 st.info("Setting up labeled data...")
                 try:
                     subprocess.run(
-                        ["python", str(VIDS_DIR / "setup_new_data.py"), str(img_dir), str(new_class_name)],
+                        [
+                            "python",
+                            str(VIDS_DIR / "setup_new_data.py"),
+                            str(img_dir),
+                            str(new_class_name),
+                            "--train-split", str(train_split)
+                        ],
                         check=True
                     )
                     st.success("New data setup complete!")
@@ -397,7 +480,11 @@ else:
 
     st.write(f"**{idx+1}/{num_images}: {img_file}**")
     img = draw_labels_on_image(image_path, label_path, class_names)
-    st.image(img, use_container_width=True)
+    MAX_DISPLAY = 800 
+    h, w = img.shape[:2]
+    scale = min(MAX_DISPLAY / w, MAX_DISPLAY / h, 1.0)  # never scale up
+    disp_img = cv2.resize(img, (int(w*scale), int(h*scale)), interpolation=cv2.INTER_AREA)
+    st.image(disp_img)
 
 
 
@@ -538,6 +625,8 @@ if st.session_state.run_inference and st.session_state.model_loaded:
     screen_region = {'top': top, 'left': left, 'width': width, 'height': height}
     frame_display = st.empty()
 
+    MAX_DISPLAY = 800
+
     while st.session_state.run_inference:
         screen = np.array(sct.grab(screen_region))
         frame_rgb = cv2.cvtColor(screen, cv2.COLOR_BGRA2RGB)
@@ -547,9 +636,12 @@ if st.session_state.run_inference and st.session_state.model_loaded:
         img_with_boxes_bgr = results[0].plot()
         img_with_boxes_rgb = cv2.cvtColor(img_with_boxes_bgr, cv2.COLOR_BGR2RGB)
 
-        frame_display.image(img_with_boxes_rgb, channels="RGB", use_container_width=True)
+        # --- Scale for display ---
+        h, w = img_with_boxes_rgb.shape[:2]
+        scale = min(MAX_DISPLAY / w, MAX_DISPLAY / h, 1.0)  # never scale up
+        disp_img = cv2.resize(img_with_boxes_rgb, (int(w*scale), int(h*scale)), interpolation=cv2.INTER_AREA)
 
-        # prevent Streamlit from freezing, adjust fps here
+        frame_display.image(disp_img, channels="RGB")
         time.sleep(0.001)
 
 
@@ -589,3 +681,21 @@ if st.button("Delete Class"):
                 st.success(f"Class '{delete_class_name}' deleted from dataset.")
             else:
                 st.warning(f"No folders found for class '{delete_class_name}'.")
+
+
+
+
+
+from yolo.segmentation.train_utility import restore_labels, tmp_dirs
+import atexit
+
+def cleanup():
+    print("App is shutting down, cleaning up...")
+
+    for tmp_dir in tmp_dirs:
+        if os.path.exists(tmp_dir) and os.listdir(tmp_dir):
+            print(f" Restoring from existing temp folder: {tmp_dir}")
+            restore_labels()
+            break
+
+atexit.register(cleanup)

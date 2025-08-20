@@ -9,6 +9,8 @@ my_dataset/labels/storage/train/*
 my_dataset/labels/storage/val/*
 my_dataset/labels/train/*
 my_dataset/labels/val/*
+my_dataset/labels/ttmp
+my_dataset/labels/vtmp
 
 # Ignore masks
 my_dataset/masks/train/*
@@ -33,3 +35,4 @@ __pycache__/
 __pycache__/
 *.py[cod]
 *$py.class
+

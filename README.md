@@ -100,7 +100,7 @@ You don’t pick your final training classes yet — you just **register a class
 **A. Define the class name**  
 - In the app, go to the data setup section ("Add class" / "Create class"), enter a **class name** (e.g., `rhino`, `white monster`).
 
-![Define the class name](readme_pics/1A.png)
+<img src="readme_pics/1A.png" width="400" style="border: 2px solid gray; border-radius: 4px;" />
 
 
 **B. Provide images for that class**  

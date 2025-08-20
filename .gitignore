@@ -36,3 +36,5 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Yolo files in main directory
+yolo11n.pt

@@ -7,14 +7,13 @@
 ## Table of Contents
 - [What is this](#what-is-this)
 - [Key features](#key-features)
-- [Quick start](#quick-start)
-- [Step‑by‑step tutorial (new users)](#step-by-step-tutorial-new-users)
+- [Step‑by‑step tutorial](#step-by-step-tutorial-new-users)
   - [0) Install & launch](#0-install--launch)
   - [1) Add a class & collect raw images](#1-add-a-class--collect-raw-images)
   - [2) Label the images and import labels](#2-label-the-images-and-import-labels)
   - [3) Prepare the training set](#3-prepare-the-training-set)
-  - [4) Train (fine‑tune) the model](#4-train-fine-tune-the-model)
-  - [5) Evaluate / real‑time inference](#5-evaluate--real-time-inference)
+  - [4) Train (fine-tune) the model](#4-train-fine-tune-the-model)
+  - [5) Evaluate / real-time inference](#5-evaluate-real-time-inference)
 - [Folder layout](#folder-layout)
 - [Augmentations](#augmentations)
 - [Tips & pitfalls](#tips--pitfalls)
@@ -53,7 +52,7 @@
 ---
 
 
-## Step‑by‑step tutorial (new users)
+## Step‑by‑step tutorial
 This is the complete, beginner‑friendly path. Follow the steps in order.
 
 ### 0) Install & launch

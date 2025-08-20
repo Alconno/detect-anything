@@ -6,13 +6,7 @@ import numpy as np
 # Load depth estimation pipeline
 depth_estimator = pipeline(task="depth-estimation", model="Intel/zoedepth-nyu-kitti")
 
-# Load image (from URL or local)
-url = 'http://images.cocodataset.org/val2017/000000039769.jpg'
-image = Image.open(requests.get(url, stream=True).raw)
-
-image = "./fires12344.png"
-
-# Run inference
+image = Image.open("./my_dataset/images/storage/train/rhino/rhino_00000.png").convert("RGB")
 outputs = depth_estimator(image)
 
 # Access depth map (PIL Image)

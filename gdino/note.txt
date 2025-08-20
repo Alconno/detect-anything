@@ -1,0 +1,2 @@
+GDINO is still just an experiment and is not yet implemented into the application.
+It can be ran manually for automated labeling, however it is not advised as it doesn't really perform well.

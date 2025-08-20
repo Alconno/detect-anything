@@ -5,12 +5,12 @@ from ultralytics import YOLO
 from transformers import pipeline
 
 # Load your image
-image_path = "./my_images/fires2.png"
+image_path = "./my_dataset/images/storage/train/rhino/rhino_00000.png"
 image_pil = Image.open(image_path).convert("RGB")
 image_cv2 = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
 
 # Load YOLOv8 model
-model = YOLO('runs/detect/train6/weights/best.pt')
+model = YOLO('runs/segment/train/weights/best.pt')
 results = model(image_cv2)[0]
 
 # Load depth estimation pipeline

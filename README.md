@@ -29,8 +29,9 @@
 - Designed to be **beginner‑proof**: the app renames files, keeps images and labels in sync, and builds the dataset structure for you.
 
 ## Results of 10-40 train samples and only 5 minute training
-<img src="readme_pics/irl_example.png" width="200" />
-<img src="readme_pics/game_example.png" width="200" />
+| Real life | Game |
+|-----------|------|
+| ![RL](readme_pics/irl_example.png) | ![Game](readme_pics/game_example.png) |
 
 ## Key features
 - **Video → frames**: extract frames from a video that contains your objects of interest.
@@ -98,17 +99,23 @@ You don’t pick your final training classes yet — you just **register a class
 
 **A. Define the class name**  
 - In the app, go to the data setup section ("Add class" / "Create class"), enter a **class name** (e.g., `rhino`, `white monster`).
+
 ![Define the class name](readme_pics/1A.png)
+
 
 **B. Provide images for that class**  
 Pick **one** of the two:
 - **From a video**: upload a video containing your object(s). Use the **Frame Extraction** tool to sample frames. The app saves extracted images under the class you just created.
 - **From an archive**: upload a **ZIP/RAR** of a folder with many images of that class.
+
 ![Provide video or images](readme_pics/1B.png)
+
 
 **C. Download (must do because of new image names)**  
 After extraction/upload, the app offers a **Download** with standardized filenames. This renaming is important because labels will later use **exactly the same basenames**.
+
 ![Download the images](readme_pics/1C.png)
+
 
 > If you already uploaded a folder of images and you’re keeping them locally, you can skip the download — but ensure filenames match what the app expects if you label outside.
 
@@ -130,7 +137,9 @@ Now you annotate those images at https://www.makesense.ai/ and bring labels back
 - Back in the app, **upload the archive** and choose how to **split** your data (e.g., 80% train / 20% val). The app will:
   - Validate that **image basenames == label basenames**.
   - Place files into the project’s **storage** with the correct layout.
+
 ![Labeling and importing the images](readme_pics/2C.png)
+
 
 > From now on, your **images** and **labels** are synchronized and ready for training.
 
@@ -138,7 +147,9 @@ Now you annotate those images at https://www.makesense.ai/ and bring labels back
 
 ### 3) Prepare the training set
 This step builds a clean YOLO dataset from the class storage.
+
 ![Preparing the training set](readme_pics/3ALL.png)
+
 
 **A. Reset previous working set (optional)**  
 - Use the app’s **clear/reset** button to wipe any previous working set if you want a fresh run.
@@ -149,23 +160,31 @@ This step builds a clean YOLO dataset from the class storage.
 
 **C. Select classes to include**  
 - Pick one or more previously added classes from storage.
+
 ![Select classes to include](readme_pics/3C.png)
+
 
 **D. Configure augmentations**  
 - Set **how many augmented samples per original** you want.  
 - You can also edit the augmentation code/config (see [Augmentations](#augmentations)).
+
 ![Configure augmentations](readme_pics/3D.png)
+
 
 **E. Generate & preview**  
 - The app writes/updates your dataset config (e.g., `data.yaml`) with selected classes.  
 - **Preview** the final samples in the UI: images with boxes, masks/polygons, tiling results — so you know exactly what will be used for training.
+
 ![Preview samples](readme_pics/3E.png)
+
 
 ---
 
 ### 4) Train (fine‑tune) the model
 With the dataset ready, kick off training.
+
 ![Fine-tune the model](readme_pics/4ALL.png)
+
 
 **A. Choose model type**  
 - The app automatically launches **detection** *or* **segmentation** training based on what you chose in Step 3.
@@ -187,7 +206,9 @@ Once training finishes:
 - Use the **Real‑Time Detection / Segmentation** page in the app to run the model on live video or recorded footage.  
 - This currently runs **on your PC** (GPU‑accelerated if available). If you capture video on a phone, copy/stream it to the PC; the app will process it there.
 
+
 ![Real-time inference](readme_pics/5ALL.png)
+
 ---
 
 ## Folder layout

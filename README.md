@@ -14,6 +14,7 @@
   - [3) Prepare the training set](#3-prepare-the-training-set)
   - [4) Train (fine-tune) the model](#4-train-fine-tune-the-model)
   - [5) Evaluate / real-time inference](#5-evaluate-real-time-inference)
+- [Real-Time WebSocket API Client](#real-time-websocket-api-client)
 - [Folder layout](#folder-layout)
 - [Augmentations](#augmentations)
 - [Tips & pitfalls](#tips--pitfalls)

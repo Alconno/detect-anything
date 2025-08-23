@@ -205,6 +205,59 @@ Once training finishes:
 
 ---
 
+
+## Real-Time WebSocket API Client
+
+A WebSocket-based client enables streaming screen captures to the YOLO segmentation or detection models in real-time, allowing frames to be sent continuously and JSON-formatted inference results to be received for each frame.
+
+### How It Works
+
+1. **Screen Capture**: The client uses `mss` to capture a specific screen region (`SCREEN_REGION`).  
+2. **Frame Encoding**: Each captured frame is converted to BGR (model expects BGR) and encoded as a JPEG, then base64-encoded.  
+3. **WebSocket Streaming**: Frames are sent to the server over the WebSocket endpoint:
+   - `/ws/segment` → segmentation model  
+   - `/ws/detect` → detection model  
+4. **Server Inference**: The server receives the frame, runs YOLO inference, and returns a JSON response containing all detected objects.  
+5. **Client Receives Results**: The client prints or processes the JSON results, which include bounding boxes, confidence scores, class IDs, and segmentation masks (if applicable).  
+
+### Running the Client
+
+1. Start the API server:
+
+```bash
+python .\yolo\server.py
+```
+
+2. Run the client:
+
+```bash
+python .\yolo\client.py
+```
+
+3. The client will start streaming your defined screen region and print JSON results per frame, e.g.:
+
+```json
+{
+  "results": [
+    {
+      "class": 0,
+      "confidence": 0.87,
+      "bbox": [x1, y1, x2, y2],
+      "mask": [[x1, y1], [x2, y2], ...]  # only for segmentation
+    },
+    ...
+  ]
+}
+```
+
+- **FPS** is printed to the console to monitor performance.  
+- No visualization is performed; only JSON data is returned.  
+- Adjust `SCREEN_REGION`, `imgsz`, or `conf` as needed for your use case.
+
+
+---
+
+
 ## Folder layout
 The app maintains a consistent storage structure (simplified view):
 
